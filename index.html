@@ -1,0 +1,476 @@
+<!--
+CandyCrush
+Your Name: Jeremy Wong
+Collaborators: Nobody
+-->
+<!DOCTYPE html>
+<html>
+<!--
+/* Copyright (c) 2017 MIT 6.813/6.831 course staff, all rights reserved.
+ * Redistribution of original or derived work requires permission of course staff.
+ */
+-->
+
+<head>
+<meta charset="utf-8">
+<title>CandyCrush</title>
+
+<!-- Load style sheets -->
+<link rel="stylesheet" href=
+  "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.css">
+
+<link rel="stylesheet" href="mainLayout.css">
+
+<!-- Use mobile-aware viewport -->
+<meta name="viewport" content=
+  "width=device-width, initial-scale=1, shrink-to-fit=no">
+
+<!-- Load any supplemental Javascript libraries here -->
+<script src=
+  "https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src=
+  "https://cdnjs.cloudflare.com/ajax/libs/seedrandom/2.4.2/seedrandom.js">
+</script>
+<script src="candy.js"></script>
+<script src="board.js"></script>
+<script src="rules.js"></script>
+
+
+<script>
+
+// By default, the first board loaded by your page will be the same 
+// each time you load (which is accomplished by "seeding" the random
+// number generator. This makes testing (and grading!) easier!
+Math.seedrandom(0);
+
+// A short jQuery extension to read query parameters from the URL.
+$.extend({
+  getUrlVars: function() {
+    var vars = [], pair;
+    var pairs = window.location.search.substr(1).split('&');
+    for (var i = 0; i < pairs.length; i++) {
+      pair = pairs[i].split('=');
+      vars.push(pair[0]);
+      vars[pair[0]] = pair[1] &&
+          decodeURIComponent(pair[1].replace(/\+/g, ' '));
+    }
+    return vars;
+  },
+  getUrlVar: function(name) {
+    return $.getUrlVars()[name];
+  }
+});
+
+// constants
+var DEFAULT_BOARD_SIZE = 8;
+
+// data model at global scope for easier debugging
+var board;
+var rules;
+var swap;
+
+// initialize board
+if ($.getUrlVar('size') && $.getUrlVar('size') >= 3) {
+  board = new Board($.getUrlVar('size'));
+} else {
+  board = new Board(DEFAULT_BOARD_SIZE);
+}
+
+// load a rule
+rules = new Rules(board);
+
+// Final initialization entry point: the Javascript code inside this block
+// runs at the end of start-up when the page has finished loading.
+$(document).ready(function()
+{
+  //NOT CREATING THE REPRESENTATION OF THE BOARD HERE!!!!
+  // Your code here.
+  board.clear();
+  rules.prepareNewGame();
+  EnableMoveButtons(false);
+  enableCrush(false);
+  // I HAVE THIS HERE SO I CAN CONSTANTLY LISTEN FOR INPUT
+  inputListener();
+});
+//console.log()
+
+/* Event Handlers */
+
+// add a candy to the board
+$(board).on('add', function(e, info)
+{ 
+  // Your code here.  
+  var candy = info.candy;
+  var col = String.fromCharCode(candy.col + 97);
+  var row = (candy.row+1).toString();
+  var id = '#' + col + row;
+  var color = (candy.color).toString();
+  
+  $(id).css({ 
+    'background-color': color
+  });
+
+});
+
+// move a candy on the board
+$(board).on('move', function(e, info)
+{
+  // Your code here.
+  
+  var candy = info.candy;
+  var tocol = String.fromCharCode(candy.col + 97);
+  var torow = (candy.row + 1).toString();
+  var toid = '#' + tocol + torow;
+  var color = (candy.color).toString();
+  $(toid).css({ 
+    'background-color': color // the color of candy im moving goes here
+  });
+});
+
+// remove a candy from the board
+$(board).on('remove', function(e, info)
+{
+  // Your code here.
+  
+  var candy = info.candy;
+  var tocol = String.fromCharCode(candy.col + 97);
+  var torow = (candy.row + 1).toString();
+  var toid = '#' + tocol + torow;
+  var color = (candy.color).toString();
+  
+  $(toid).css({ 
+    'background-color': color // the color of candy im moving goes here
+  });
+});
+
+// move a candy on the board
+$(board).on('scoreUpdate', function(e, info)
+{
+  // Your code here. To be implemented in pset 2.
+});
+
+
+
+// Button Events
+$(document).on('click', "#newBtn", function(evt)
+{
+  // Your code here.
+  enableCrush(false);
+  board.clear();
+  rules.prepareNewGame();
+});
+$(document).on('click', "#upBtn", function(evt)
+{
+  // Your code here.
+  moveCandy('up');
+  enableCrush(true);
+});
+$(document).on('click', "#leftBtn", function(evt)
+{
+  // Your code here.
+  moveCandy('left');
+  enableCrush(true);
+});
+$(document).on('click', "#rightBtn", function(evt)
+{
+  // Your code here.
+  moveCandy('right');
+  enableCrush(true);
+
+});
+$(document).on('click', "#downBtn", function(evt)
+{
+  // Your code here.
+  moveCandy('down');
+  enableCrush(true);
+});
+$(document).on('click', "#crushBtn", function(evt)
+{
+
+  // Your code here.
+  rules.removeCrushes(rules.getCandyCrushes(swap));
+  rules.moveCandiesDown();
+});
+
+
+// keyboard events arrive here
+$(document).on('keydown', function(evt) {
+  // Your code here.
+});
+
+
+// HELPER FUNCTIONS START HERE //
+
+
+function moveCandy(direction){
+  var text = document.getElementById("inputBox").value;
+  //check if the contents of text is a valid text light activate buttons
+  var letter = charToInt(text.substr(0,1)); //a gives me 0
+  var number = parseInt(text.substr(1,2) - 1); //1 gives me 1
+  var candy = board.getCandyAt(number,letter);
+  if (rules.isMoveTypeValid(candy, direction)){
+    var candy2 = board.getCandyInDirection(candy, direction);
+    board.flipCandies(candy, candy2);
+  }
+  swap = [candy,candy2];
+  document.getElementById("inputBox").value = "";
+  document.getElementById("inputBox").focus();
+  EnableMoveButtons(false);
+}
+
+function charToInt(letter){
+  if (letter == 'a'){return 0;}
+  if (letter == 'b'){return 1;}
+  if (letter == 'c'){return 2;}
+  if (letter == 'd'){return 3;}
+  if (letter == 'e'){return 4;}
+  if (letter == 'f'){return 5;}
+  if (letter == 'g'){return 6;}
+  if (letter == 'h'){return 7;}
+  else{return 8;}
+}
+
+function EnableMoveButtons(bool){
+	if (bool){
+    $("#upBtn").removeAttr("disabled");
+    $("#upBtn").css("background", '#338a51'); 
+    $("#leftBtn").removeAttr("disabled");
+    $("#leftBtn").css("background", '#338a51');
+    $("#rightBtn").removeAttr("disabled");
+    $("#rightBtn").css("background", '#338a51');
+    $("#downBtn").removeAttr("disabled");
+    $("#downBtn").css("background", '#338a51');
+  }
+	else{
+    $("#upBtn").attr("disabled", "disabled");
+    $("#upBtn").css("background", "#ededed");
+    $("#leftBtn").attr("disabled", "disabled");
+    $("#leftBtn").css("background", "#ededed");
+    $("#rightBtn").attr("disabled", "disabled");
+    $("#rightBtn").css("background", "#ededed");
+    $("#downBtn").attr("disabled", "disabled");
+    $("#downBtn").css("background", "#ededed");
+  }
+}
+
+function enableCrush(bool){
+	if (bool){
+    $("#crushBtn").removeAttr("disabled");
+    $("#crushBtn").css("background", '#338a51');
+  }
+	else{
+    $("#crushBtn").attr("disabled", "disabled");
+    $("#crushBtn").css("background", "#ededed");
+  }
+}
+function enableLeft(bool){
+	if (bool){
+    $("#leftBtn").removeAttr("disabled");
+    $("#leftBtn").css("background", '#338a51');
+
+  }
+	else{
+    $("#leftBtn").attr("disabled", "disabled");
+    $("#leftBtn").css("background", "#ededed");
+  }
+}
+function enableRight(bool){
+  if (bool){
+    $("#rightBtn").removeAttr("disabled");
+    $("#rightBtn").css("background", '#338a51');
+  }
+  else{
+    $("#rightBtn").attr("disabled", "disabled");
+    $("#rightBtn").css("background", "#ededed");
+  }
+}
+function enableUp(bool){
+  if (bool){
+    $("#upBtn").removeAttr("disabled");
+    $("#upBtn").css("background", '#338a51');
+  }
+  else{
+    $("#upBtn").attr("disabled", "disabled");
+    $("#upBtn").css("background", "#ededed");
+  }
+}
+function enableDown(bool){
+  if (bool){
+    $("#downBtn").removeAttr("disabled");
+    $("#downBtn").css("background", '#338a51');
+  }
+  else{
+    $("#downBtn").attr("disabled", "disabled");
+    $("#downBtn").css("background", "#ededed");
+  }
+}
+
+function inputListener(){
+  $("#inputBox").on("input", function(evt){
+    var text = $(this).val();
+    EnableMoveButtons(false);
+    if (text.length == 2){
+      var letter = charToInt(text.substr(0,1)); //a gives me 0
+
+      var number = parseInt(text.substr(1,2) - 1); //1 gives me 1
+      if (!Number.isInteger(parseInt(text.substr(1,2) - 1))){
+        console.log("bad input")
+      }
+      var candy = board.getCandyAt(number,letter);
+
+      if (rules.isMoveTypeValid(candy, 'right')){
+        enableRight(true);
+      }
+      if (rules.isMoveTypeValid(candy, 'left')){
+        enableLeft(true);
+      }
+      if (rules.isMoveTypeValid(candy, 'up')){
+        enableUp(true);
+      }
+      if (rules.isMoveTypeValid(candy, 'down')){
+        enableDown(true);
+      }
+    }
+    else if(text.length > 2){
+      console.log("bad")
+    }
+
+
+  });
+}
+
+// HELPER FUNCTIONS END HERE //
+</script>
+
+
+
+
+
+</head>
+
+<body>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-3" id="firstColumn">
+      <!-- Column 1 Code Here -->
+        <div id ="title">Candy Crush</div>
+      <input class="btn btn-sm" type="button" id="newBtn" value="New Game"></br>
+  </div>
+
+    <div class="col-md-6" id="mainColumn">
+
+      <!-- Column 2 Code Here -->
+      <table id="myTable">
+        <tr id = "row1">
+          <td id = "a1"> <text id= "A1">a1</text> </td>
+          <td id = "b1"> <text id= "B1">b1</text> </td>
+          <td id = "c1"> <text id= "C1">c1</text> </td>
+          <td id = "d1"> <text id= "D1">d1</text> </td>
+          <td id = "e1"> <text id= "E1">e1</text></td>
+          <td id = "f1"> <text id= "F1">f1</text> </td>
+          <td id = "g1"> <text id= "G1">g1</text> </td>
+          <td id = "h1"> <text id= "H1">h1</text> </td>
+        </tr>
+        <tr id = "row2">
+          <td id = "a2"> <text id= "A2">a2</text> </td>
+          <td id = "b2"> <text id= "B2">b2</text> </td>
+          <td id = "c2"> <text id= "C2">c2</text> </td>
+          <td id = "d2"> <text id= "D2">d2</text> </td>
+          <td id = "e2"> <text id= "E2">e2</text></td>
+          <td id = "f2"> <text id= "F2">f2</text> </td>
+          <td id = "g2"> <text id= "G2">g2</text> </td>
+          <td id = "h2"> <text id= "H2">h2</text> </td>
+        </tr>
+        <tr id = "row3">
+          <td id = "a3"> <text id= "A3">a3</text> </td>
+          <td id = "b3"> <text id= "B3">b3</text> </td>
+          <td id = "c3"> <text id= "C3">c3</text> </td>
+          <td id = "d3"> <text id= "D3">d3</text> </td>
+          <td id = "e3"> <text id= "E3">e3</text></td>
+          <td id = "f3"> <text id= "F3">f3</text> </td>
+          <td id = "g3"> <text id= "G3">g3</text> </td>
+          <td id = "h3"> <text id= "H3">h3</text> </td>
+        </tr>
+        <tr id = "row4">
+          <td id = "a4"> <text id= "A4">a4</text> </td>
+          <td id = "b4"> <text id= "B4">b4</text> </td>
+          <td id = "c4"> <text id= "C4">c4</text> </td>
+          <td id = "d4"> <text id= "D4">d4</text> </td>
+          <td id = "e4"> <text id= "E4">e4</text></td>
+          <td id = "f4"> <text id= "F4">f4</text> </td>
+          <td id = "g4"> <text id= "G4">g4</text> </td>
+          <td id = "h4"> <text id= "H4">h4</text> </td>
+        </tr>
+        <tr id = "row5">
+          <td id = "a5"> <text id= "A5">a5</text> </td>
+          <td id = "b5"> <text id= "B5">b5</text> </td>
+          <td id = "c5"> <text id= "C5">c5</text> </td>
+          <td id = "d5"> <text id= "D5">d5</text> </td>
+          <td id = "e5"> <text id= "E5">e5</text></td>
+          <td id = "f5"> <text id= "F5">f5</text> </td>
+          <td id = "g5"> <text id= "G5">g5</text> </td>
+          <td id = "h5"> <text id= "H5">h5</text> </td>
+        </tr>
+        <tr id = "row6">
+          <td id = "a6"> <text id= "A6">a6</text> </td>
+          <td id = "b6"> <text id= "B6">b6</text> </td>
+          <td id = "c6"> <text id= "C6">c6</text> </td>
+          <td id = "d6"> <text id= "D6">d6</text> </td>
+          <td id = "e6"> <text id= "E6">e6</text></td>
+          <td id = "f6"> <text id= "F6">f6</text> </td>
+          <td id = "g6"> <text id= "G6">g6</text> </td>
+          <td id = "h6"> <text id= "H6">h6</text> </td>
+        </tr>
+        <tr id = "row7">
+          <td id = "a7"> <text id= "A7">a7</text> </td>
+          <td id = "b7"> <text id= "B7">b7</text> </td>
+          <td id = "c7"> <text id= "C7">c7</text> </td>
+          <td id = "d7"> <text id= "D7">d7</text> </td>
+          <td id = "e7"> <text id= "E7">e7</text></td>
+          <td id = "f7"> <text id= "F7">f7</text> </td>
+          <td id = "g7"> <text id= "G7">g7</text> </td>
+          <td id = "h7"> <text id= "H7">h7</text> </td>
+        </tr>
+        <tr id = "row8">
+          <td id = "a8"> <text id= "A8">a8</text> </td>
+          <td id = "b8"> <text id= "B8">b8</text> </td>
+          <td id = "c8"> <text id= "C8">c8</text> </td>
+          <td id = "d8"> <text id= "D8">d8</text> </td>
+          <td id = "e8"> <text id= "E8">e8</text></td>
+          <td id = "f8"> <text id= "F8">f8</text> </td>
+          <td id = "g8"> <text id= "G8">g8</text> </td>
+          <td id = "h8"> <text id= "H8">h8</text> </td>
+        </tr>
+      </table>
+
+    </div>
+    
+    <div class="col-md-3" id="lastColumn">
+      <!-- Column 3 Code Here -->
+      <div id="moveTitle">Move: <input id= "inputBox"></input></div>
+      
+      <input class="btn btn-sm" type="button" id="upBtn" value="^"></button>
+      <input class="btn btn-sm" type="button" id="leftBtn" value="<"></button>
+      <input class="btn btn-sm" type="button" id="rightBtn" value=">"></button>
+      <input class="btn btn-sm" type="button" id="downBtn" value="v"></button>
+      <input class="btn btn-sm" type="button" id="crushBtn" value="Crush Once"></button>
+    </div>
+  </div> <!-- class="row" -->
+</div> <!-- class="container" -->
+
+</body>
+
+</html>
+
+<script>
+arrayLetters = ['A','B','C','D','E','F','G','H'];
+arrayNumbers = ['1','2','3','4','5','6','7','8'];
+for (var i = 0; i < arrayLetters.length; i++){
+  for (var j = 0; j < arrayNumbers.length; j++){
+    var id = '#' + arrayLetters[i] + arrayNumbers[j]
+    $(id).css("color", "black");
+    $(id).css("font-weight", "bold");
+  }
+}
+</script>

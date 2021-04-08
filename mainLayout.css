@@ -1,0 +1,82 @@
+/* Copyright (c) 2017 MIT 6.813/6.831 course staff, all rights reserved.
+ * Redistribution of original or derived work requires permission of course staff.
+ */
+
+/* REMOVE ME - dashed lines and height for debugging */
+#firstColumn, #mainColumn, #lastColumn {
+	margin: auto;
+	padding: 10px;
+}
+
+body {
+  background-color: #ece9d0;  
+}
+
+#myTable {
+  
+  border: 2px solid black;
+  height: 320px;
+  width: 320px;
+  
+}
+td {
+  padding: 10px;
+  border: 1px solid black;
+}
+
+#title {
+  color: #338a51;
+  font-size: 30px;
+  font-weight: bold;
+}
+#moveTitle {
+  left: 120px;
+  bottom: 10px;
+  position: relative;
+  color: black;
+  font-size: 25px;
+  font-weight: bold;
+}
+#inputBox {
+  height: 30px;
+  width: 25%
+}
+
+#upBtn{
+  height: 60px;
+  width: 20%;
+  position: relative;
+  left: 175px;
+  top: 20px;
+}
+#leftBtn{
+  height: 60px;
+  width: 20%;
+  position: relative;
+  left: 40px;
+  top: 100px; 
+}
+#rightBtn{
+  height: 60px;
+  width: 20%;
+  position: relative;
+  left: 140px;
+  top: 100px; 
+}
+#downBtn{
+  height: 60px;
+  width: 20%;
+  position: relative;
+  right: 0px;
+  top: 185px;
+}
+
+#crushBtn{
+  height: 35px;
+  width: 70%;
+  font-size: 20px;
+  position: relative;
+  left: 110px;
+  top: 210px; 
+}
+/* Your css code here! */
